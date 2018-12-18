@@ -1,10 +1,13 @@
 import $ from 'jquery';
-import {parseCode} from './code-analyzer';
+import {getTextFinished} from './code-analyzer';
 
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
         let codeToParse = $('#codePlaceholder').val();
-        let parsedCode = parseCode(codeToParse);
-        $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
+        let vars= $('#parameterInput').val();
+        var table = document.getElementById('grandTable');
+        var row = table.rows[1];
+        var cell = row.cells[1];
+        cell.innerHTML=getTextFinished(codeToParse,vars);
     });
 });
