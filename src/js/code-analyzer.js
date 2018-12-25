@@ -1,4 +1,7 @@
 import * as esprima from 'esprima';
+import * as esgraph from 'esgraph';
+const viz = require('viz.js');
+
 
 let localDic={};
 let globalDic={};
@@ -15,7 +18,7 @@ const parseCode = (codeToParse) => {
 
 
 const getTextFinished=(codeToParse,variables)=>{
-    globalDic={};localDic={};functionRow=0;outputLines=[];stopColor=false;insideTrueIf=true;let parsedCode=parseCode(codeToParse);
+    /*globalDic={};localDic={};functionRow=0;outputLines=[];stopColor=false;insideTrueIf=true;let parsedCode=parseCode(codeToParse);
     userVars=variables;
     codeLines=codeToParse.split('\n');
     for(var i in parsedCode) { // im walking above all the out side.
@@ -30,7 +33,115 @@ const getTextFinished=(codeToParse,variables)=>{
             }
         }
     }
-    return textToDisplay();
+    return textToDisplay();*/
+    return buildCfg(codeToParse);
+};
+const buildCfg = (code)=>{
+    var parsedCode=parseCode(code)['body'][0]['body'];
+    var graph =esgraph(parsedCode);
+    var stringGraph=esgraph.dot(graph);
+    stringGraph = removeException(stringGraph);
+    stringGraph = removeEntryExitNodes(stringGraph);
+    stringGraph = changeTrueAndFlaseOnArc(stringGraph);
+    stringGraph = changeNodesLabelsAndStyle(stringGraph,graph[2]);
+    var test=viz('digraph {'+stringGraph+'}');
+    return test;
+};
+const changeNodesLabelsAndStyle =(stringGraph,arrObject)=>{
+    let arr=stringGraph.split('\n');
+    for(var i=1;i<arrObject.length-1;i++){
+        var split = arr[i-1].split(' ');
+        if(arrObject[i]['astNode']['type']==='VariableDeclaration'){
+            var decString=declarationString(arrObject[i]);
+            arr[i-1]=split[0]+' [label="'+decString+'"]';
+        }else if(arrObject[i]['astNode']['type']==='BinaryExpression'){
+            var binString=BinaryString(arrObject[i]);
+            arr[i-1]=split[0]+' [label='+binString+', shape=diamond]';
+        }else if(arrObject[i]['astNode']['type']==='AssignmentExpression'){
+            var assiString=assigmentString(arrObject[i]);
+            arr[i-1]=split[0]+' [label='+assiString+']';
+        }else{ // (arrObject[i]['astNode']['type']==='ReturnStatement')
+            var retuString=returnString(arrObject[i]);
+            arr[i-1]=split[0]+' [label='+retuString+']';
+        }
+    }
+    return joinStringArray(arr);
+};
+
+const declarationString=(parsedCode)=>{
+    //TODO: return the string.
+    return 'decl';
+};
+const BinaryString=(parsedCode)=>{
+    //TODO: return the string.
+    return 'bina';
+};
+const assigmentString=(parsedCode)=>{
+    //TODO: return the string.
+    return 'assi';
+};
+const returnString=(parsedCode)=>{
+    //TODO: return the string.
+    return 'return';
+};
+const changeTrueAndFlaseOnArc = (graph) =>{
+    let arr=graph.split('\n');
+    for(var j =0; j<arr.length;j++){
+        var temp = arr[j].split(' ');
+        if(temp[1]==='->'){ // arc
+            if(temp[3]==='[label="true"]') {//true
+                arr[j]=temp[0]+' '+temp[1]+' '+temp[2]+' '+'[label="T"]';
+            }
+            else if(temp[3]==='[label="false"]'){
+                arr[j]=temp[0]+' '+temp[1]+' '+temp[2]+' '+'[label="F"]';
+            }
+        }
+    }
+    return joinStringArray(arr) ;
+};
+
+const removeEntryExitNodes = (graph) =>{
+    let arr=graph.split('\n');
+    var nodeRemove=getNodeRemove(arr);
+    for(var j =0; j<arr.length;j++){
+        var temp = arr[j].split(' ');
+        if(nodeRemove.includes(temp[0])){ // node + maybe arc gets in
+            arr[j] = '';
+        }
+        else if(temp[1]==='->' && nodeRemove.includes(temp[2])) { // arc
+            arr[j] = '';
+        }
+    }
+    return joinStringArray(arr) ;
+};
+
+const joinStringArray=(arr)=>{
+    let ans=[];
+    for(var j =0; j<arr.length;j++){
+        if(!(arr[j]==='')){
+            ans.push(arr[j]);
+        }
+    }
+    return ans.join('\n');
+};
+
+const getNodeRemove= (arr)=>{
+    var nodeRemove=[];
+    for(var i =0; i<arr.length;i++){
+        if(arr[i].includes('entry') || arr[i].includes('exit')){
+            nodeRemove.push(arr[i].split(' ')[0]);
+        }
+    }
+    return nodeRemove;
+};
+const removeException = (graph)=>{
+    let arr=graph.split('\n');
+    for(var i =0; i<arr.length;i++){
+        if(arr[i].includes('exception')){
+            arr[i]='';
+        }
+    }
+    return joinStringArray(arr);
 };
 const textToDisplay=()=>{
     var hugeString='';
