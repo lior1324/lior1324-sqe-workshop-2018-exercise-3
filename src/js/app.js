@@ -1,4 +1,5 @@
 import $ from 'jquery';
+const viz = require('viz.js');
 import {getTextFinished} from './code-analyzer';
 
 $(document).ready(function () {
@@ -8,6 +9,8 @@ $(document).ready(function () {
         var table = document.getElementById('grandTable');
         var row = table.rows[1];
         var cell = row.cells[1];
-        cell.innerHTML=getTextFinished(codeToParse,vars);
+        var stringGraph=getTextFinished(codeToParse,vars);
+        var showAsHtml=viz('digraph {'+stringGraph+'}');
+        cell.innerHTML=showAsHtml;
     });
 });

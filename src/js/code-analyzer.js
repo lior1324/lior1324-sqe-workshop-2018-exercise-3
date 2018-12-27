@@ -1,6 +1,6 @@
 import * as esprima from 'esprima';
 import * as esgraph from 'esgraph';
-const viz = require('viz.js');
+
 
 
 let localDic={};
@@ -11,6 +11,7 @@ let insideTrueIf=true;
 let stopColor=false;
 let outputLines=[];
 let functionRow=0;
+let globalNumber=1;
 
 const parseCode = (codeToParse) => {
     return esprima.parseScript(codeToParse,{loc:true});
@@ -18,8 +19,8 @@ const parseCode = (codeToParse) => {
 
 
 const getTextFinished=(codeToParse,variables)=>{
-    /*globalDic={};localDic={};functionRow=0;outputLines=[];stopColor=false;insideTrueIf=true;let parsedCode=parseCode(codeToParse);
-    userVars=variables;
+    globalDic={};localDic={};functionRow=0;outputLines=[];stopColor=false;insideTrueIf=true;let parsedCode=parseCode(codeToParse);
+    userVars=variables;globalNumber=1;
     codeLines=codeToParse.split('\n');
     for(var i in parsedCode) { // im walking above all the out side.
         if (i === 'body') {
@@ -33,7 +34,6 @@ const getTextFinished=(codeToParse,variables)=>{
             }
         }
     }
-    return textToDisplay();*/
     return buildCfg(codeToParse);
 };
 const buildCfg = (code)=>{
@@ -42,49 +42,201 @@ const buildCfg = (code)=>{
     var stringGraph=esgraph.dot(graph);
     stringGraph = removeException(stringGraph);
     stringGraph = removeEntryExitNodes(stringGraph);
-    stringGraph = changeTrueAndFlaseOnArc(stringGraph);
+    stringGraph = changeTrueAndFalseOnArc(stringGraph);
+    setColorAndNumbers(graph[2]);
     stringGraph = changeNodesLabelsAndStyle(stringGraph,graph[2]);
-    var test=viz('digraph {'+stringGraph+'}');
-    return test;
+    return stringGraph;
 };
+const setColorAndNumbers = (arrObject)=>{
+    realColorAndNumber(arrObject[1],'green',1);
+};
+const realColorAndNumber = (node,color) =>{
+    var colorTrue='',colorFalse='';
+    if(node['type']==='exit') {return;}
+    if(node['false']!=undefined) {
+        var parsedCode = node['astNode'];
+        var left = getInit(parsedCode['left']);var right = getInit(parsedCode['right']);left = checkIfNan(left);right = checkIfNan(right);
+        var ans = eval(left + parsedCode['operator'] + right);
+        colorFalse = colorByWhileOrIfFalse(ans, node['parent']);colorTrue = colorByWhileOrIfTrue(ans);
+        if (node['parent']['type'] === 'WhileStatement') {    if(node['color']!=undefined)return;
+            node['color']=color;node['number']=globalNumber;globalNumber++;
+            realColorAndNumber(node['false'], colorFalse);realColorAndNumber(node['true'], colorTrue);}
+        else {
+            node['color']=color;node['number']=globalNumber;globalNumber++;
+            realColorAndNumber(node['false'], colorFalse);
+            realColorAndNumber(node['true'], colorTrue);}}
+    else {
+        checkColorReplaceIf(node,color);
+        realColorAndNumber(node['normal'], color);}
+};
+const checkColorReplaceIf=(node,color)=>{
+    if(node['color']===undefined) {node['color'] = color;node['number'] = globalNumber;globalNumber++;}
+    else {if(color==='green') {node['color'] = 'green';}}
+};
+const colorByWhileOrIfTrue=(ans)=>{
+    if(ans){
+        return 'green';
+    }else {
+        return 'white';
+    }
+};
+const colorByWhileOrIfFalse=(ans,parsedCode)=>{
+    if(parsedCode['type']==='WhileStatement'){
+        return 'green';
+    }else{
+        // color true depends on the ans and false is the mashlim.
+        if(!ans){
+            return 'green';
+        }else{
+            return 'white';
+        }
+    }
+};
+const checkIfNan = (side) =>{
+    if(isNaN(side)){
+        return getInit(parseCode(side)['body'][0]['expression']);
+    }
+    return side;
+};
+/*const colorNodesAndNumber = (stringGraph,arrObject)=>{
+    let arr=stringGraph.split('\n');
+    for(var i=1;i<arrObject.length-1;i++){
+        var split = arr[i-1].split(' ');
+        if(arrObject[i]['astNode']['type']==='VariableDeclaration'){
+            var decString=declarationString(arrObject[i]['astNode']['declarations']);
+            arr[i-1]=split[0]+' [label="'+decString+'", shape=rectangle]';
+        }else if(arrObject[i]['astNode']['type']==='BinaryExpression'){
+            var binString=BinaryString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+binString+'", shape=diamond]';
+        }else if(arrObject[i]['astNode']['type']==='AssignmentExpression'){
+            var assiString=assigmentString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+assiString+'", shape=rectangle]';
+        }else{ // (arrObject[i]['astNode']['type']==='ReturnStatement')
+            var retuString=returnString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+retuString+'", shape=rectangle]';
+        }
+    }
+    return joinStringArray(arr);
+};*/
 const changeNodesLabelsAndStyle =(stringGraph,arrObject)=>{
     let arr=stringGraph.split('\n');
     for(var i=1;i<arrObject.length-1;i++){
         var split = arr[i-1].split(' ');
         if(arrObject[i]['astNode']['type']==='VariableDeclaration'){
-            var decString=declarationString(arrObject[i]);
-            arr[i-1]=split[0]+' [label="'+decString+'"]';
+            var decString=declarationString(arrObject[i]['astNode']['declarations']);
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+decString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else if(arrObject[i]['astNode']['type']==='BinaryExpression'){
-            var binString=BinaryString(arrObject[i]);
-            arr[i-1]=split[0]+' [label='+binString+', shape=diamond]';
+            var binString=BinaryString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+binString+'", shape=diamond, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else if(arrObject[i]['astNode']['type']==='AssignmentExpression'){
-            var assiString=assigmentString(arrObject[i]);
-            arr[i-1]=split[0]+' [label='+assiString+']';
+            var assiString=assigmentString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+assiString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else{ // (arrObject[i]['astNode']['type']==='ReturnStatement')
-            var retuString=returnString(arrObject[i]);
-            arr[i-1]=split[0]+' [label='+retuString+']';
+            var retuString=returnString(arrObject[i]['astNode']);
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+retuString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }
     }
     return joinStringArray(arr);
 };
 
 const declarationString=(parsedCode)=>{
-    //TODO: return the string.
-    return 'decl';
+    var ans='';
+    for (var i in parsedCode) {
+        if(parsedCode[i]['init']!=null) {
+            if (parsedCode[i]['init']['type'] === 'ArrayExpression') { // array
+                ans = ans +parsedCode[i]['id']['name']+' = [';
+                for (var j in parsedCode[i]['init']['elements']) {
+                    ans = ans +getStringThird(parsedCode[i]['init']['elements'][j])+', ';
+                }
+                ans =ans.substring(0, ans.length-2);
+                ans = ans + '], ';
+            } else {
+                ans = ans+parsedCode[i]['id']['name'] + ' = '+getStringThird(parsedCode[i]['init'])+', '; // there is init
+            }
+        }
+        else { // no init
+            ans=ans+parsedCode[i]['id']['name']+', ';}
+    }
+    return ans.substring(0, ans.length-2);
 };
 const BinaryString=(parsedCode)=>{
     //TODO: return the string.
-    return 'bina';
+    var left = findWhatLeft(parsedCode['left']);
+    var rights = getStringThird(parsedCode['right']);
+    return left +' '+parsedCode['operator']+' '+ rights;
 };
 const assigmentString=(parsedCode)=>{
     //TODO: return the string.
-    return 'assi';
+    var left = findWhatLeft(parsedCode['left']);
+    var rights = getStringThird(parsedCode['right']);
+    return left +' = '+ rights;
 };
 const returnString=(parsedCode)=>{
     //TODO: return the string.
-    return 'return';
+    var string =getStringThird(parsedCode['argument']);
+    return 'return '+string;
 };
-const changeTrueAndFlaseOnArc = (graph) =>{
+const getStringThird = (parsedCode)=>{
+    if(parsedCode['type']==='Literal'){
+        return literalFunctionLocal(parsedCode);
+    }
+    if(parsedCode['type']==='Identifier'){
+        return identifierThird(parsedCode);
+    }
+    if(parsedCode['type']==='MemberExpression'){
+        return memberExpressionThird(parsedCode);
+    }
+    if(parsedCode['type']==='UnaryExpression'){
+        return unaryExpressionThird(parsedCode);
+    }else{
+        return binaryExpressionThird(parsedCode);
+    }
+};
+const binaryExpressionThird =(parsedCode)=>{
+    var left=0,right=0;
+    if(parsedCode['left']['type']==='Literal'){
+        left=literalFunctionLocal(parsedCode['left']);
+    }else if (parsedCode['left']['type']==='Identifier'){
+        left = identifierThird(parsedCode['left']);
+    }else {
+        left= binaryExpressionThird2(parsedCode['left']);
+    }
+    if(parsedCode['right']['type']==='Literal'){
+        right=literalFunctionLocal(parsedCode['right']);
+    }else if (parsedCode['right']['type']==='Identifier'){
+        right = identifierThird(parsedCode['right']);
+    }
+    else {
+        right = binaryExpressionThird2(parsedCode['right']);
+    }
+    return '('+left+' '+parsedCode['operator']+' '+right+')';
+};
+const binaryExpressionThird2 =(parsedCode)=>{
+    if(parsedCode['type']==='MemberExpression'){
+        return memberExpressionThird(parsedCode);
+    }else if(parsedCode['type']==='UnaryExpression'){
+        return unaryExpressionThird(parsedCode);
+    }else { // binary expression
+        return '('+getStringThird(parsedCode['left'])+' '+parsedCode['operator']+' '+getStringThird(parsedCode['right'])+')';
+    }
+};
+const identifierThird = (parsedCode)=>{
+    return parsedCode['name'];
+};
+const memberExpressionThird = (parsedCode)=>{
+    return parsedCode['object']['name'] + '[' + getStringThird(parsedCode['property']) + ']';
+};
+const unaryExpressionThird = (parsedCode)=>{
+    return parsedCode['operator']+' ('+getStringThird(parsedCode['argument'])+')';
+};
+const findWhatLeft = (parsedCode)=>{
+    if(parsedCode['type']==='MemberExpression'){
+        return parsedCode['object']['name'] + '[' + getStringThird(parsedCode['property']) + ']';
+    }else{
+        return parsedCode['name'];
+    }
+};
+const changeTrueAndFalseOnArc = (graph) =>{
     let arr=graph.split('\n');
     for(var j =0; j<arr.length;j++){
         var temp = arr[j].split(' ');
@@ -143,7 +295,7 @@ const removeException = (graph)=>{
     }
     return joinStringArray(arr);
 };
-const textToDisplay=()=>{
+/*const textToDisplay=()=>{
     var hugeString='';
     var tableLength = outputLines.length;
     for (var i = 0; i < tableLength; i++) {
@@ -156,7 +308,7 @@ const textToDisplay=()=>{
         }
     }
     return hugeString;
-};
+};*/
 const functionDeclarationFinder =(parsedCode)=>{
     // moving the parameter that we get by the thing.
     outputLines.push (codeLines[functionRow]);
