@@ -2,7 +2,7 @@ import * as esprima from 'esprima';
 import * as esgraph from 'esgraph';
 
 
-
+//json-summary change back from html...
 let localDic={};
 let globalDic={};
 let userVars='';
@@ -25,12 +25,9 @@ const getTextFinished=(codeToParse,variables)=>{
     for(var i in parsedCode) { // im walking above all the out side.
         if (i === 'body') {
             for (var j in parsedCode[i]) {// thats the array of all the functions.
-                if (parsedCode[i][j]['type'] === 'FunctionDeclaration') {
-                    functionDeclarationFinder(parsedCode[i][j]);
-                } else {
-                    globalTreat(parsedCode[i][j]);
-                    functionRow++;
-                }
+                //if (parsedCode[i][j]['type'] === 'FunctionDeclaration') {
+                functionDeclarationFinder(parsedCode[i][j]);
+                //}
             }
         }
     }
@@ -124,16 +121,16 @@ const changeNodesLabelsAndStyle =(stringGraph,arrObject)=>{
         var split = arr[i-1].split(' ');
         if(arrObject[i]['astNode']['type']==='VariableDeclaration'){
             var decString=declarationString(arrObject[i]['astNode']['declarations']);
-            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+decString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+'. '+decString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else if(arrObject[i]['astNode']['type']==='BinaryExpression'){
             var binString=BinaryString(arrObject[i]['astNode']);
-            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+binString+'", shape=diamond, style = filled, fillcolor='+arrObject[i]['color']+']';
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+'. '+binString+'", shape=diamond, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else if(arrObject[i]['astNode']['type']==='AssignmentExpression'){
             var assiString=assigmentString(arrObject[i]['astNode']);
-            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+assiString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+'. '+assiString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }else{ // (arrObject[i]['astNode']['type']==='ReturnStatement')
             var retuString=returnString(arrObject[i]['astNode']);
-            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+' '+retuString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
+            arr[i-1]=split[0]+' [label="'+arrObject[i]['number']+'. '+retuString+'", shape=rectangle, style = filled, fillcolor='+arrObject[i]['color']+']';
         }
     }
     return joinStringArray(arr);
@@ -295,20 +292,6 @@ const removeException = (graph)=>{
     }
     return joinStringArray(arr);
 };
-/*const textToDisplay=()=>{
-    var hugeString='';
-    var tableLength = outputLines.length;
-    for (var i = 0; i < tableLength; i++) {
-        if(outputLines[i].includes('~')){// green
-            hugeString = hugeString +'<p style=\'background-color:#4ff955\'>'+ outputLines[i].substring(0, outputLines[i].length-1) + '</p> \n';
-        }else if(outputLines[i].includes('@')){// red
-            hugeString = hugeString +'<p style=\'background-color:#fc3320\'>'+ outputLines[i].substring(0, outputLines[i].length-1) + '</p> \n';
-        }else {
-            hugeString = hugeString +'<p>'+ outputLines[i] + '</p> \n';
-        }
-    }
-    return hugeString;
-};*/
 const functionDeclarationFinder =(parsedCode)=>{
     // moving the parameter that we get by the thing.
     outputLines.push (codeLines[functionRow]);
@@ -373,6 +356,8 @@ const getString =(parsedCode)=>{
     }
 };
 const literalFunctionLocal=(parsedCode)=>{
+    if(parsedCode['raw'].includes('"'))
+        return parsedCode['raw'].replace(/"/g,'\'');
     return parsedCode['raw'];
 };
 
@@ -628,7 +613,7 @@ const checkIfTrueOrFalse=(value,parsedCode)=>{
         globalDic[parsedCode['name']]=false;
     }
 };
-const globalTreat=(parsedCode)=>{
+/*const globalTreat=(parsedCode)=>{
     if(parsedCode['type']==='VariableDeclaration')
     {
         declarationGlobal(parsedCode['declarations']);
@@ -638,16 +623,16 @@ const globalTreat=(parsedCode)=>{
         assigmentGlobal(parsedCode);
     }
 
-};
+};*/
 
-const assigmentGlobal=(parsedCode)=>{
+/*const assigmentGlobal=(parsedCode)=>{
     // need to check if it cointains in the global array
     // otherwise we change the value of it
     var left = findWhatLeftGlobal(parsedCode['expression']['left']);
     var right = getInit(parsedCode['expression']['right']);
     globalDic[left]=right;
     outputLines.push(left+' = '+right+';');
-};
+};*/
 
 
 const findWhatLeftGlobal= (parsedCode)=>{
@@ -658,7 +643,7 @@ const findWhatLeftGlobal= (parsedCode)=>{
     }
 };
 
-const declarationGlobal=(parsedCode)=>{
+/*const declarationGlobal=(parsedCode)=>{
     for (var i in parsedCode) {
         if(parsedCode[i]['init']!=null) {
             if (parsedCode[i]['init']['type'] === 'ArrayExpression') {
@@ -675,7 +660,7 @@ const declarationGlobal=(parsedCode)=>{
         }
     }
     outputLines.push(codeLines[functionRow]);
-};
+};*/
 
 const getInit=(parsedCode)=>{
     // literal computed identifier unary binary
