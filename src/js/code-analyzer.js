@@ -52,32 +52,42 @@ const realColorAndNumber = (node,color) =>{
     if(node['type']==='exit') {return;}
     if(node['false']!=undefined) {
         var parsedCode = node['astNode'];
-        var left = getInit(parsedCode['left']);var right = getInit(parsedCode['right']);left = checkIfNan(left);right = checkIfNan(right);
+        var left = getInit(parsedCode['left']);var right = getInit(parsedCode['right']);left = checkIfNan(left);right = checkIfNan(right);left = checkIfString(left);right=checkIfString(right);
         var ans = eval(left + parsedCode['operator'] + right);
-        colorFalse = colorByWhileOrIfFalse(ans, node['parent']);colorTrue = colorByWhileOrIfTrue(ans);
-        if (node['parent']['type'] === 'WhileStatement') {    if(node['color']!=undefined)return;
-            node['color']=color;node['number']=globalNumber;globalNumber++;
-            realColorAndNumber(node['false'], colorFalse);realColorAndNumber(node['true'], colorTrue);}
-        else {
-            node['color']=color;node['number']=globalNumber;globalNumber++;
+        colorFalse = colorByWhileOrIfFalse(ans, node['parent'],color);colorTrue = colorByWhileOrIfTrue(ans,color);
+        if (node['parent']['type'] === 'WhileStatement') {  var temp= node['color'];
+            /*node['color']=color;*/checkColorReplaceIf(node,color);
+            if(checkWhenToReturn(temp,color)) return;
+            realColorAndNumber(node['false'], colorFalse);realColorAndNumber(node['true'], colorTrue);
+        } else {
+            checkColorReplaceIf(node,color);
             realColorAndNumber(node['false'], colorFalse);
             realColorAndNumber(node['true'], colorTrue);}}
     else {
         checkColorReplaceIf(node,color);
         realColorAndNumber(node['normal'], color);}
 };
+const checkWhenToReturn=(temp,color)=>{
+    if((!(temp==='white' && color ==='green')) && temp!=undefined)
+        return true;
+    return false;
+};
 const checkColorReplaceIf=(node,color)=>{
     if(node['color']===undefined) {node['color'] = color;node['number'] = globalNumber;globalNumber++;}
     else {if(color==='green') {node['color'] = 'green';}}
 };
-const colorByWhileOrIfTrue=(ans)=>{
+const colorByWhileOrIfTrue=(ans,color)=>{
+    if(color==='white')
+        return 'white';
     if(ans){
         return 'green';
     }else {
         return 'white';
     }
 };
-const colorByWhileOrIfFalse=(ans,parsedCode)=>{
+const colorByWhileOrIfFalse=(ans,parsedCode,color)=>{
+    if(color==='white')
+        return 'white';
     if(parsedCode['type']==='WhileStatement'){
         return 'green';
     }else{
@@ -91,6 +101,9 @@ const colorByWhileOrIfFalse=(ans,parsedCode)=>{
 };
 const checkIfNan = (side) =>{
     if(isNaN(side)){
+        var test=parseCode(side)['body'][0]['expression'];
+        if(!(test['type']==='BinaryExpression'))
+            return side;
         return getInit(parseCode(side)['body'][0]['expression']);
     }
     return side;
@@ -230,6 +243,8 @@ const findWhatLeft = (parsedCode)=>{
     if(parsedCode['type']==='MemberExpression'){
         return parsedCode['object']['name'] + '[' + getStringThird(parsedCode['property']) + ']';
     }else{
+        if(parsedCode['name']===undefined)
+            return literalFunctionLocal(parsedCode);
         return parsedCode['name'];
     }
 };
@@ -358,7 +373,9 @@ const getString =(parsedCode)=>{
 const literalFunctionLocal=(parsedCode)=>{
     if(parsedCode['raw'].includes('"'))
         return parsedCode['raw'].replace(/"/g,'\'');
-    return parsedCode['raw'];
+    if(isNaN(parsedCode['raw']))
+        return parsedCode['raw'];
+    return parsedCode['value'];
 };
 
 const identifierFunctionLocal=(parsedCode)=>{
@@ -417,7 +434,6 @@ const assigmentLocal=(parsedCode)=>{
     var rightv = getInit(parsedCode['right']);
     if(globalDic.hasOwnProperty(left)){
         globalDic[left]=rightv;
-        outputLines.push(left+' = '+rights+';');
     }else{
         localDic[left]=rights;
     }
@@ -443,13 +459,6 @@ const IfLocal =(parsedCode,ifelse,shouldIColor)=>
     localDic=saveLocal;globalDic=saveGlobal;
 };
 const checkIfColor=(shouldIColor,color)=>{
-    if(stopColor===true)
-    {
-        return '';
-    }
-    if(shouldIColor===false){
-        return '';
-    }
     if(color==='~'){
         insideTrueIf=true;
     }
@@ -471,20 +480,17 @@ const booleanToColor=(bool)=>{
     return '@'; // red is mapped to @
 };
 const myEval=(parsedCode)=>{
-    if(parsedCode['type']==='UnaryExpression'){
-        return !(myEval(parsedCode['argument']));
-    }else{
-        var left =getInit(parsedCode['left']);
-        var right=getInit(parsedCode['right']);
-        left=checkIfString(left);
-        right=checkIfString(right);
-        var ans = eval(left +parsedCode['operator']+right);
-        return ans;
-    }
+    var left =getInit(parsedCode['left']);
+    var right=getInit(parsedCode['right']);
+    left=checkIfString(left);
+    right=checkIfString(right);
+    var ans = eval(left +parsedCode['operator']+right);
+    return ans;
 };
 const checkIfString=(checking)=>{
     if(typeof checking === 'string' || checking instanceof String){
-        return '\''+checking+'\'';
+        if(!checking.includes('\''))
+            return '\''+checking+'\'';
     }
     return checking;
 };
@@ -681,6 +687,10 @@ const getInit=(parsedCode)=>{
 };
 
 const literalFunctionGlobal=(parsedCode)=>{
+    if(parsedCode['raw'].includes('"'))
+        return parsedCode['raw'].replace(/"/g,'\'');
+    if(isNaN(parsedCode['raw']))
+        return parsedCode['raw'];
     return parsedCode['value'];
 };
 const binaryExpressionGlobal=(parsedCode)=>{
