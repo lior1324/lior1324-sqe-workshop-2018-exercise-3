@@ -149,7 +149,7 @@ describe('The javascript parser', () => {
             'n12 -> n9 []'
         );
     });
-    it ('',()=>{// 5
+    it ('parsing local vars with diffrent items #3',()=>{// 5
         assert.equal(
             getTextFinished('function foo(x, y, z){\n' +
                 '    let a = x + 1;\n' +
@@ -197,7 +197,7 @@ describe('The javascript parser', () => {
             'n13 -> n10 []'
         );
     });
-    it ('',()=>{// 6
+    it ('parsing local vars with diffrent items #4',()=>{// 6
         assert.equal(
             getTextFinished('function foo(x, y, z){\n' +
                 '    let a = x + 1;\n' +
@@ -242,7 +242,7 @@ describe('The javascript parser', () => {
             'n12 -> n9 []'
         );
     });
-    it ('',()=>{// 7
+    it ('parsing local vars with diffrent items #5',()=>{// 7
         assert.equal(
             getTextFinished('function foo(x, y, z){\n' +
                 '    let a = x + 1;\n' +
@@ -293,7 +293,7 @@ describe('The javascript parser', () => {
             'n14 -> n11 []'
         );
     });
-    it ('',()=>{// 8
+    it ('parsing local vars with diffrent items #6',()=>{// 8
         assert.equal(
             getTextFinished('function foo(x, y, z){\n' +
                 '    let a = x[0] + 1;\n' +
@@ -332,7 +332,7 @@ describe('The javascript parser', () => {
             'n10 -> n7 []'
         );
     });
-    it ('',()=>{// 9
+    it ('parsing local vars with diffrent items #7',()=>{// 9
         assert.equal(
             getTextFinished('function foo(x, y, z,w,v,u,s,t){\n' +
                 '    let a = x[0] + 1;\n' +
@@ -380,7 +380,7 @@ describe('The javascript parser', () => {
             'n13 -> n10 []'
         );
     });
-    it ('',()=>{// 10
+    it ('parsing local vars with diffrent items #8',()=>{// 10
         assert.equal(
             getTextFinished('function foo(x, y, z,w,v,u,s,t){\n' +
                 '    let a = x[0] + 1;\n' +
@@ -419,7 +419,7 @@ describe('The javascript parser', () => {
             'n10 -> n7 []'
         );
     });
-    it ('',()=>{// 11
+    it ('parsing local vars with diffrent items #9',()=>{// 11
         assert.equal(
             getTextFinished('function foo(x, y, z,w,v,u,s,t){\n' +
                 '    let a = x[0] + 1;\n' +
@@ -458,7 +458,7 @@ describe('The javascript parser', () => {
             'n10 -> n7 []'
         );
     });
-    it ('',()=>{// 12
+    it ('parsing local vars with diffrent items #10',()=>{// 12
         assert.equal(
             getTextFinished('function foo(x, y,z){\n' +
                 '    let a = x + 1;\n' +
